@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Keuangan Pribadi - Scan Struk</title>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+    }
+
+    .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .card h3 {
+        color: #666;
+        font-size: 0.9em;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+    }
+
+    .card .amount {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .card.income .amount {
+        color: #10b981;
+    }
+
+    .card.expense .amount {
+        color: #ef4444;
+    }
+
+    .card.balance .amount {
+        color: #667eea;
+    }
+
+    .main-content {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 20px;
+    }
+
+    .form-section {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .form-section h2 {
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .tab {
+        padding: 12px 20px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: #666;
+        font-size: 1em;
+        font-weight: 600;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .tab.active {
+        color: #667eea;
+    }
+
+    .tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #667eea;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .scanner-section {
+        text-align: center;
+    }
+
+    .upload-area {
+        border: 3px dashed #667eea;
+        border-radius: 15px;
+        padding: 40px;
+        margin-bottom: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #f8f9fa;
+    }
+
+    .upload-area:hover {
+        background: #e7e9fc;
+        border-color: #5568d3;
+    }
+
+    .upload-area.dragover {
+        background: #e7e9fc;
+        border-color: #5568d3;
+        transform: scale(1.02);
+    }
+
+    .upload-icon {
+        font-size: 4em;
+        margin-bottom: 15px;
+    }
+
+    .upload-text {
+        color: #666;
+        font-size: 1.1em;
+        margin-bottom: 10px;
+    }
+
+    .upload-subtext {
+        color: #999;
+        font-size: 0.9em;
+    }
+
+    #receiptInput {
+        display: none;
+    }
+
+    .preview-container {
+        margin-top: 20px;
+        display: none;
+    }
+
+    .preview-image {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .loading.active {
+        display: block;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 15px 0;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        width: 0%;
+        transition: width 0.3s;
+    }
+
+    .scan-result {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+        display: none;
+    }
+
+    .scan-result.active {
+        display: block;
+    }
+
+    .scan-result h3 {
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .scan-info {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        border-left: 4px solid #667eea;
+    }
+
+    .scan-info label {
+        display: block;
+        color: #666;
+        font-size: 0.85em;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+
+    .scan-info input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        font-size: 1.1em;
+        font-weight: bold;
+    }
+
+    .ocr-text {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.85em;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        border: 1px solid #e0e0e0;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #666;
+        font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        margin-top: 10px;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .btn-group .btn {
+        flex: 1;
+    }
+
+    .transactions-section {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .transactions-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .filter-group select {
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .transaction-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+    }
+
+    .transaction-item:hover {
+        background: #f9f9f9;
+    }
+
+    .transaction-info {
+        flex: 1;
+    }
+
+    .transaction-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .transaction-meta {
+        font-size: 0.85em;
+        color: #999;
+    }
+
+    .transaction-amount {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+
+    .transaction-amount.income {
+        color: #10b981;
+    }
+
+    .transaction-amount.expense {
+        color: #ef4444;
+    }
+
+    .transaction-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-small {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.85em;
+    }
+
+    .btn-delete {
+        background: #ef4444;
+        color: white;
+    }
+
+    .category-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        background: #e0e0e0;
+        margin-left: 10px;
+    }
+
+    .scan-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        background: #667eea;
+        color: white;
+        margin-left: 10px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .alert-info {
+        background: #e7f3ff;
+        border-left: 4px solid #2196F3;
+        color: #1976D2;
+    }
+
+    @media (max-width: 768px) {
+        .main-content {
+            grid-template-columns: 1fr;
+        }
+
+        .cards {
+            grid-template-columns: 1fr;
+        }
+
+        .transaction-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .transaction-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Aplikasi Keuangan Pribadi</h1>
+            <p>Kelola keuangan Anda dengan mudah - Scan Struk Offline! 📸</p>
+        </div>
+
+```
+    <div class="cards">
+        <div class="card income">
+            <h3>Total Pemasukan</h3>
+            <div class="amount" id="totalIncome">Rp 0</div>
+        </div>
+        <div class="card expense">
+            <h3>Total Pengeluaran</h3>
+            <div class="amount" id="totalExpense">Rp 0</div>
+        </div>
+        <div class="card balance">
+            <h3>Saldo</h3>
+            <div class="amount" id="balance">Rp 0</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="form-section">
+            <h2>Tambah Transaksi</h2>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('scanner')">📸 Scan Struk</button>
+                <button class="tab" onclick="switchTab('manual')">✍️ Input Manual</button>
+            </div>
+
+            <div id="scannerTab" class="tab-content active">
+                <div class="alert alert-info">
+                    📸 <strong>Scan Struk Offline:</strong> Upload struk belanja, sistem akan membaca teks otomatis menggunakan OCR. 100% berjalan di browser Anda!
+                </div>
+
+                <div class="scanner-section">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Klik untuk ambil foto atau upload struk</div>
+                        <div class="upload-subtext">Format: JPG, PNG, WEBP</div>
+                        <input type="file" id="receiptInput" accept="image/*" capture="environment">
+                    </div>
+
+                    <div class="preview-container" id="previewContainer">
+                        <canvas id="previewCanvas" class="preview-image"></canvas>
+                        <button class="btn btn-primary" id="scanBtn">🔍 Scan Struk Sekarang</button>
+                    </div>
+
+                    <div class="loading" id="loadingIndicator">
+                        <div class="spinner"></div>
+                        <p id="loadingText">Sedang memproses struk...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p style="font-size: 0.9em; color: #999;" id="progressText">0%</p>
+                    </div>
+
+                    <div class="scan-result" id="scanResult">
+                        <h3>✅ Hasil Scan Struk</h3>
+                        
+                        <div class="scan-info">
+                            <label>Nama Toko/Merchant:</label>
+                            <input type="text" id="scannedMerchant" value="Toko" />
+                        </div>
+                        
+                        <div class="scan-info">
+                            <label>Total Belanja (Rp):</label>
+                            <input type="number" id="scannedTotal" value="0" step="1000" />
+                        </div>
+                        
+                        <div class="scan-info">
+                            <label>Tanggal Transaksi:</label>
+                            <input type="date" id="scannedDate" />
+                        </div>
+
+                        <details style="margin-top: 15px;">
+                            <summary style="cursor: pointer; color: #667eea; font-weight: 600;">📄 Lihat Teks Hasil OCR</summary>
+                            <div class="ocr-text" id="ocrText">-</div>
+                        </details>
+
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label>Kategori</label>
+                            <select id="scannedCategory" required>
+                                <option value="Makanan">Makanan</option>
+                                <option value="Belanja">Belanja</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Tagihan">Tagihan</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Catatan (Opsional)</label>
+                            <textarea id="scannedNotes" rows="2" placeholder="Tambahkan catatan..."></textarea>
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-primary" id="saveScannedBtn">💾 Simpan Transaksi</button>
+                            <button class="btn btn-secondary" id="resetScanBtn">🔄 Scan Ulang</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="manualTab" class="tab-content">
+                <form id="transactionForm">
+                    <div class="form-group">
+                        <label>Tipe Transaksi</label>
+                        <select id="type" required>
+                            <option value="income">Pemasukan</option>
+                            <option value="expense">Pengeluaran</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="category" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Jumlah (Rp)</label>
+                        <input type="number" id="amount" placeholder="0" required min="0" step="1000">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Deskripsi</label>
+                        <input type="text" id="description" placeholder="Contoh: Belanja di Indomaret" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tanggal</label>
+                        <input type="date" id="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Catatan (Opsional)</label>
+                        <textarea id="notes" rows="3" placeholder="Tambahkan catatan..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Tambah Transaksi</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="transactions-section">
+            <div class="transactions-header">
+                <h2>Riwayat Transaksi</h2>
+                <div class="filter-group">
+                    <select id="filterType">
+                        <option value="all">Semua</option>
+                        <option value="income">Pemasukan</option>
+                        <option value="expense">Pengeluaran</option>
+                    </select>
+                    <select id="filterCategory">
+                        <option value="all">Semua Kategori</option>
+                    </select>
+                </div>
+            </div>
+            <div id="transactionsList">
+                <div class="empty-state">
+                    <p>Belum ada transaksi. Mulai dengan scan struk atau tambahkan manual!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const categories = {
+        income: ['Gaji', 'Freelance', 'Bonus', 'Investasi', 'Lainnya'],
+        expense: ['Makanan', 'Transport', 'Belanja', 'Tagihan', 'Kesehatan', 'Hiburan', 'Pendidikan', 'Lainnya']
+    };
+
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let currentImageFile = null;
+    let ocrFullText = '';
+
+    document.getElementById('date').valueAsDate = new Date();
+    document.getElementById('scannedDate').valueAsDate = new Date();
+
+    function switchTab(tab) {
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        
+        if (tab === 'scanner') {
+            tabs[0].classList.add('active');
+            document.getElementById('scannerTab').classList.add('active');
+        } else {
+            tabs[1].classList.add('active');
+            document.getElementById('manualTab').classList.add('active');
+        }
+    }
+
+    const uploadArea = document.getElementById('uploadArea');
+    const receiptInput = document.getElementById('receiptInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const ctx = previewCanvas.getContext('2d');
+
+    uploadArea.addEventListener('click', () => receiptInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handleImageUpload(file);
+        }
+    });
+
+    receiptInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleImageUpload(file);
+    });
+
+    function handleImageUpload(file) {
+        currentImageFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                // Resize untuk performa lebih baik
+                const maxWidth = 800;
+                const maxHeight = 1200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                if (height > maxHeight) {
+                    width = (width * maxHeight) / height;
+                    height = maxHeight;
+                }
+
+                previewCanvas.width = width;
+                previewCanvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                previewContainer.style.display = 'block';
+                document.getElementById('scanResult').classList.remove('active');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function extractNumber(text) {
+        if (!text) return 0;
+        const numbers = text.match(/\d+[.,]?\d*/g);
+        if (!numbers) return 0;
+        
+        const largest = numbers
+            .map(n => parseFloat(n.replace(/\./g, '').replace(',', '.')))
+            .filter(n => !isNaN(n) && n > 1000)
+            .sort((a, b) => b - a)[0];
+        
+        return largest || 0;
+    }
+
+    function extractMerchant(text) {
+        const lines = text.split('\n').filter(l => l.trim().length > 2);
+        
+        const merchants = [
+            'INDOMARET', 'ALFAMART', 'ALFAMIDI', 'HYPERMART', 'CARREFOUR',
+            'MATAHARI', 'RAMAYANA', 'KFC', 'MCDONALD', 'STARBUCKS',
+            'CIRCLE K', 'LAWSON', 'SUPERINDO', 'LOTTE'
+        ];
+        
+        for (const line of lines.slice(0, 5)) {
+            const upperLine = line.toUpperCase();
+            for (const merchant of merchants) {
+                if (upperLine.includes(merchant)) {
+                    return merchant;
+                }
+            }
+        }
+        
+        return lines[0]?.trim().substring(0, 30) || 'Toko';
+    }
+
+    function extractDate(text) {
+        const datePatterns = [
+            /(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/,
+            /(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/
+        ];
+        
+        for (const pattern of datePatterns) {
+            const match = text.match(pattern);
+            if (match) {
+                let [, p1, p2, p3] = match;
+                if (p3.length === 2) p3 = '20' + p3;
+                
+                if (p1.length === 4) {
+                    return `${p1}-${p2.padStart(2, '0')}-${p3.padStart(2, '0')}`;
+                } else {
+                    return `${p3}-${p2.padStart(2, '0')}-${p1.padStart(2, '0')}`;
+                }
+            }
+        }
+        
+        return new Date().toISOString().split('T')[0];
+    }
+
+    document.getElementById('scanBtn').addEventListener('click', async () => {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const scanResult = document.getElementById('scanResult');
+        const scanBtn = document.getElementById('scanBtn');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        
+        scanBtn.disabled = true;
+        loadingIndicator.classList.add('active');
+        scanResult.classList.remove('active');
+        progressFill.style.width = '0%';
+
+        try {
+            // Use canvas as image source untuk menghindari CORS
+            const worker = await Tesseract.createWorker('ind', 1, {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        const progress = Math.round(m.progress * 100);
+                        progressFill.style.width = progress + '%';
+                        progressText.textContent = progress + '%';
+                    }
+                }
+            });
+
+            // Recognize dari canvas langsung
+            const { data: { text } } = await worker.recognize(previewCanvas);
+            await worker.terminate();
+
+            ocrFullText = text;
+            console.log('OCR Result:', text);
+
+            const scanData = {
+                merchant: extractMerchant(text),
+                total: extractNumber(text),
+                date: extractDate(text)
+            };
+
+            document.getElementById('scannedMerchant').value = scanData.merchant;
+            document.getElementById('scannedTotal').value = scanData.total;
+            document.getElementById('scannedDate').value = scanData.date;
+            document.getElementById('ocrText').textContent = text || 'Tidak ada teks terdeteksi';
+
+            scanResult.classList.add('active');
+            
+        } catch (error) {
+            console.error('OCR Error:', error);
+            alert('❌ Gagal memproses struk.\n\nTips:\n• Pastikan foto jelas dan terang\n• Coba foto ulang dengan angle berbeda\n• Atau gunakan input manual\n\nError: ' + error.message);
+        } finally {
+            loadingIndicator.classList.remove('active');
+            scanBtn.disabled = false;
+        }
+    });
+
+    document.getElementById('saveScannedBtn').addEventListener('click', () => {
+        const transaction = {
+            id: Date.now().toString(),
+            type: 'expense',
+            category: document.getElementById('scannedCategory').value,
+            amount: parseFloat(document.getElementById('scannedTotal').value) || 0,
+            description: `Belanja di ${document.getElementById('scannedMerchant').value}`,
+            date: document.getElementById('scannedDate').value,
+            notes: document.getElementById('scannedNotes').value,
+            scanned: true
+        };
+
+        transactions.push(transaction);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        
+        alert('✅ Transaksi berhasil disimpan!');
+        resetScan();
+        calculateTotals();
+        renderTransactions();
+    });
+
+    document.getElementById('resetScanBtn').addEventListener('click', resetScan);
+
+    function resetScan() {
+        receiptInput.value = '';
+        previewContainer.style.display = 'none';
+        document.getElementById('scanResult').classList.remove('active');
+        document.getElementById('scannedNotes').value = '';
+        currentImageFile = null;
+        ocrFullText = '';
+        ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    }
+
+    function updateCategories() {
+        const type = document.getElementById('type').value;
+        const categorySelect = document.getElementById('category');
+        categorySelect.innerHTML = '';
+        categories[type].forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            categorySelect.appendChild(option);
+        });
+    }
+
+    function updateFilterCategories() {
+        const filterCategory = document.getElementById('filterCategory');
+        const allCategories = [...new Set([...categories.income, ...categories.expense])];
+        filterCategory.innerHTML = '<option value="all">Semua Kategori</option>';
+        allCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            filterCategory.appendChild(option);
+        });
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(amount);
+    }
+
+    function calculateTotals() {
+        const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+        const balance = income - expense;
+
+        document.getElementById('totalIncome').textContent = formatCurrency(income);
+        document.getElementById('totalExpense').textContent = formatCurrency(expense);
+        document.getElementById('balance').textContent = formatCurrency(balance);
+    }
+
+    function renderTransactions() {
+        const filterType = document.getElementById('filterType').value;
+        const filterCategory = document.getElementById('filterCategory').value;
+        let filtered = transactions;
+        
+        if (filterType !== 'all') filtered = filtered.filter(t => t.type === filterType);
+        if (filterCategory !== 'all') filtered = filtered.filter(t => t.category === filterCategory);
+
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const container = document.getElementById('transactionsList');
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Tidak ada transaksi.</p></div>';
+            return;
+        }
+
+        container.innerHTML = filtered.map(t => `
+            <div class="transaction-item">
+                <div class="transaction-info">
+                    <div class="transaction-title">
+                        ${t.description}
+                        <span class="category-badge">${t.category}</span>
+                        ${t.scanned ? '<span class="scan-badge">📸 Scan</span>' : ''}
+                    </div>
+                    <div class="transaction-meta">
+                        ${new Date(t.date + 'T00:00:00').toLocaleDateString('id-ID', { 
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                        })}
+                        ${t.notes ? ' • ' + t.notes : ''}
+                    </div>
+                </div>
+                <div class="transaction-amount ${t.type}">
+                    ${t.type === 'income' ? '+' : '-'} ${formatCurrency(t.amount)}
+                </div>
+                <div class="transaction-actions">
+                    <button class="btn-small btn-delete" onclick="deleteTransaction('${t.id}')">Hapus</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    document.getElementById('transactionForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const transaction = {
+            id: Date.now().toString(),
+            type: document.getElementById('type').value,
+            category: document.getElementById('category').value,
+            amount: parseFloat(document.getElementById('amount').value),
+            description: document.getElementById('description').value,
+            date: document.getElementById('date').value,
+            notes: document.getElementById('notes').value,
+            scanned: false
+        };
+
+        transactions.push(transaction);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        document.getElementById('transactionForm').reset();
+        document.getElementById('date').valueAsDate = new Date();
+        calculateTotals();
+        renderTransactions();
+        alert('✅ Transaksi berhasil disimpan!');
+    });
+
+    function deleteTransaction(id) {
+        if (confirm('Yakin ingin menghapus transaksi ini?')) {
+            transactions = transactions.filter(t => t.id !== id);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            calculateTotals();
+            renderTransactions();
+        }
+    }
+
+    document.getElementById('type').addEventListener('change', updateCategories);
+    document.getElementById('filterType').addEventListener('change', renderTransactions);
+    document.getElementById('filterCategory').addEventListener('change', renderTransactions);
+
+    updateCategories();
+    updateFilterCategories();
+    calculateTotals();
+    renderTransactions();
+</script>
+```
+
+</body>
+</html>
